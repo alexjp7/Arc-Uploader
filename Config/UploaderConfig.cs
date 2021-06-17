@@ -1,9 +1,11 @@
 ﻿namespace ArcUploader.Config
 {
+    using log4net;
     using SimpleJSON;
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
 
     /// <summary>
     /// Runntime configuration for the collection job.  The config
@@ -11,6 +13,8 @@
     /// </summary>
     class UploaderConfig
     {
+        private static readonly ILog LOG = LogManager.GetLogger(typeof(UploaderConfig));
+
         /// <summary>
         /// An inclusive list of encounters which will be used to determine which boss encounters to collect.
         /// </summary>
@@ -20,6 +24,22 @@
         /// The base ArcDPS log directory, where the boss encounter sub-directories can be found.
         /// </summary>
         public string baseDirectory { get; private set; }
+
+        /// <summary>
+        /// Output directory of where to save output file containing the list of daily encounter URLs
+        /// If no output directory is provided, a default wil be used as <see cref="UploaderConstants.DEFAULT_OUTPUT_DIRECTORY" >Default directory.</see>
+        /// </summary>
+        public string outputDirectory { get; private set; }
+
+        /// <summary>
+        /// Flag provided by user configuration to automatically open a web-browser window show each encoutner in seperate tabs
+        /// </summary>
+        public bool isAutoBrowserOpenEnabled { get; private set; }
+
+        /// <summary>
+        /// The directory path to the user's web-browser executable.
+        /// </summary>
+        public string browserAppPath {get;private set;}
 
         //Singleton instance holder
         private static UploaderConfig _instance;
@@ -72,6 +92,38 @@
             {
                 encounters.Add(encounter.Value);
             }
+
+            this.outputDirectory = json[UploaderConstants.OUTPUT_DIRECTORY];
+
+            if (String.IsNullOrEmpty(this.outputDirectory))
+            {
+                this.outputDirectory = UploaderConstants.DEFAULT_OUTPUT_DIRECTORY;
+                LOG.Warn($"No Output directory provided. Using default output directory  {UploaderConstants.OUTPUT_DIRECTORY}");
+            }
+
+            this.isAutoBrowserOpenEnabled = json[UploaderConstants.AUTO_BROWSER_OPEN_PROPERTY].AsBool;
+            this.browserAppPath = json[UploaderConstants.BROWSER_APP_PATH_PROPERTY];
+
+            if (String.IsNullOrEmpty(this.browserAppPath))
+            {
+                this.isAutoBrowserOpenEnabled = false;
+                LOG.Warn($"No web-browser application path provided. The auto-browser open feature is disabled.");
+            }
+
+            logConfigLoaded();
+
+        }
+
+        private void logConfigLoaded()
+        {
+            LOG.Debug("############################################################");
+            LOG.Debug($"Config loaded:");
+            LOG.Debug($"ArcDPS logs directory: [{ this.baseDirectory}]");
+            LOG.Debug($"Output directory: [{ this.outputDirectory}]");
+            LOG.Debug($"Encounters: [{String.Join(",", this.encounters)}]");
+            LOG.Debug($"Browser App Apth: [{this.browserAppPath}]");
+            LOG.Debug($"Auto-browser open: [{this.isAutoBrowserOpenEnabled}]");
+            LOG.Debug("############################################################");
         }
     }
 }

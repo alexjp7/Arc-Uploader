@@ -1,6 +1,7 @@
 ﻿namespace ArcUploader.Components
 {
     using ArcUploader.Config;
+    using log4net;
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -11,6 +12,7 @@
     /// </summary>
     public class LogCollector
     {
+        private static readonly ILog LOG = LogManager.GetLogger(typeof(LogCollector));
         /// <summary>
         /// File extension for ArcDPS log files
         /// </summary>
@@ -36,7 +38,7 @@
         /// <returns> A dictionary containing the encounter name and the actually file (in memory).</returns>
         public Dictionary<string, FileInfo> collect()
         {
-            Console.WriteLine("Collection Begun...");
+            LOG.Debug("Collection Begun...");
             DirectoryInfo baseDirectory = new DirectoryInfo(config.baseDirectory);
             Dictionary<string,FileInfo> logFiles = new Dictionary<string, FileInfo>();
 
@@ -56,7 +58,7 @@
             }
 
             // No Logs found for the given day
-            if(encounters.All(encounter => encounter == null))
+            if(logFiles.All(encounter => encounter.Value == null))
             {
                 throw new FileLoadException($"No daily runs found in {config.baseDirectory}.");
             }
@@ -65,11 +67,11 @@
             {
                 if(log.Value != null)
                 {
-                    Console.WriteLine($"Collected log for [{log.Key}] that was ran on [{log.Value.CreationTime}]");
+                    LOG.Debug($"Collected log for [{log.Key}] that was ran on [{log.Value.CreationTime}]");
                 }
                 else
                 {
-                    Console.WriteLine($"No daily log available for {log.Key}");
+                    LOG.Debug($"No daily log available for {log.Key}");
                 }
             }
 
@@ -88,7 +90,7 @@
             List<FileInfo> files = new List<FileInfo>(directory.GetFiles(LOG_EXTENSION));
             if(files.Any())
             {
-                files.RemoveAll(log => log.CreationTime.Date != DateTime.Today);
+                files.RemoveAll(log => log.CreationTime.Date != DateTime.Today.AddDays(-1));
                 if(files.Any())
                 { 
                     files.Sort((x, y) => y.CreationTime.CompareTo(x.CreationTime));
