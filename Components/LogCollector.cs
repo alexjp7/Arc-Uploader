@@ -90,7 +90,7 @@
             List<FileInfo> files = new List<FileInfo>(directory.GetFiles(LOG_EXTENSION));
             if(files.Any())
             {
-                files.RemoveAll(log => log.CreationTime.Date != DateTime.Today.AddDays(-1));
+                files.RemoveAll(log => log.CreationTime.Date != DateTime.Today);
                 if(files.Any())
                 { 
                     files.Sort((x, y) => y.CreationTime.CompareTo(x.CreationTime));
