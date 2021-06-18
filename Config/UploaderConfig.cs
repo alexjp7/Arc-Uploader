@@ -41,6 +41,8 @@
         /// </summary>
         public string browserAppPath {get;private set;}
 
+        public bool isDailyRun { get; private set; }
+
         //Singleton instance holder
         private static UploaderConfig _instance;
         public static UploaderConfig INSTANCE
@@ -110,6 +112,9 @@
                 LOG.Warn($"No web-browser application path provided. The auto-browser open feature is disabled.");
             }
 
+            this.isDailyRun = json[UploaderConstants.IS_DAILY_PROPERTY].AsBool;
+
+
             logConfigLoaded();
 
         }
@@ -123,6 +128,7 @@
             LOG.Debug($"Encounters: [{String.Join(",", this.encounters)}]");
             LOG.Debug($"Browser App Apth: [{this.browserAppPath}]");
             LOG.Debug($"Auto-browser open: [{this.isAutoBrowserOpenEnabled}]");
+            LOG.Debug($"Daily runs only: [{this.isDailyRun}]");
             LOG.Debug("############################################################");
         }
     }

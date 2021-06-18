@@ -13,6 +13,7 @@
         public static readonly string OUTPUT_DIRECTORY = "output_directory";
         public static readonly string AUTO_BROWSER_OPEN_PROPERTY = "auto_browser_open";
         public static readonly string BROWSER_APP_PATH_PROPERTY = "browser_app_path";
+        public static readonly string IS_DAILY_PROPERTY = "same_day_only";
 
         public static readonly string UPLOAD_ENDPOINT = "https://dps.report/uploadContent";
     }
