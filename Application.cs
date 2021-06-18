@@ -5,6 +5,7 @@
     using log4net;
     using log4net.Config;
     using System;
+    using System.Diagnostics;
     using System.IO;
 
     /// <summary>
@@ -27,6 +28,8 @@
                 BasicConfigurator.Configure();
                 LOG.Error(e.Message);
             }
+
+            Console.ReadKey(true);
         }
     }
 }
