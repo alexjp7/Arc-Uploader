@@ -7,6 +7,7 @@
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Threading;
 
     /// <summary>
     /// Defines the overarching process and activties for uploading the most recently created ArcDPS logs.
@@ -31,28 +32,64 @@
         /// </summary>
         public void start()
         {
+            if(config.isPollingEnabled)
+            {
+                startPolling();
+            }
+            else
+            {
+                startStaticUpload();
+            }
+        }
+
+        private void startStaticUpload()
+        {
             try
             {
                 Dictionary<string, FileInfo> logs = new LogCollector().collect();
                 LogUploader uploader = new LogUploader();
                 Dictionary<string, string> results = uploader.upload(logs);
-                
+
                 writeOutput(results);
                 postProcessActions(results);
             }
             catch (FileNotFoundException e)
             {
-                LOG.Error($"Configuration file could not be found. Ensure a {UploaderConstants.CONFIG_PATH} file is present.",e);
+                LOG.Error($"Configuration file could not be found. Ensure a {UploaderConstants.CONFIG_PATH} file is present.", e);
             }
-            catch(InvalidDataException e)
+            catch (InvalidDataException e)
             {
-                LOG.Error($"Configuration contains invalid values - {e.Message}",e);
+                LOG.Error($"Configuration contains invalid values - {e.Message}", e);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                LOG.Error(e.Message,e);
+                LOG.Error(e.Message, e);
             }
-              
+        }
+
+        private void startPolling()
+        {
+            LOG.Debug("Starting log polling....");
+            LogUploader uploader = new LogUploader();
+
+            while (true)
+            {
+                Dictionary<string, FileInfo> logs = new LogCollector().pollChanges();
+                if(logs != null)
+                {
+                    foreach(string log in logs.Keys)
+                    {
+                        LOG.Debug("New log found for " + log);
+                    }
+
+                    Dictionary<string, string> results = uploader.upload(logs);
+
+                    writeOutput(results);
+                    postProcessActions(results);
+                }
+                
+                Thread.Sleep(5000);
+            }
         }
 
         /// <summary>

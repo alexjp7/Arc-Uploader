@@ -43,6 +43,11 @@
 
         public bool isDailyRun { get; private set; }
 
+        /// <summary>
+        /// A flag determine whether dynamic file uploading is enabled.
+        /// </summary>
+        public bool isPollingEnabled { get; private set; }
+
         //Singleton instance holder
         private static UploaderConfig _instance;
         public static UploaderConfig INSTANCE
@@ -113,7 +118,7 @@
             }
 
             this.isDailyRun = json[UploaderConstants.IS_DAILY_PROPERTY].AsBool;
-
+            this.isPollingEnabled = json[UploaderConstants.IS_POLLING_ENABLED].AsBool;
 
             logConfigLoaded();
 
@@ -129,6 +134,7 @@
             LOG.Debug($"Browser App Apth: [{this.browserAppPath}]");
             LOG.Debug($"Auto-browser open: [{this.isAutoBrowserOpenEnabled}]");
             LOG.Debug($"Daily runs only: [{this.isDailyRun}]");
+            LOG.Debug($"Polling mode enabled: [{this.isPollingEnabled}]");
             LOG.Debug("############################################################");
         }
     }

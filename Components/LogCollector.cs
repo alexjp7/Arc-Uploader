@@ -18,6 +18,9 @@
         /// </summary>
         private static readonly string LOG_EXTENSION = "*.evtc";
 
+
+        private DirectoryInfo currentSnapshot;
+
         /// <summary>
         /// Config instance containing runntime configurations as found in the config.json
         /// </summary>
@@ -40,32 +43,32 @@
         {
             LOG.Debug("Collection Begun...");
             DirectoryInfo baseDirectory = new DirectoryInfo(config.baseDirectory);
-            Dictionary<string,FileInfo> logFiles = new Dictionary<string, FileInfo>();
+            Dictionary<string, FileInfo> logFiles = new Dictionary<string, FileInfo>();
 
             List<DirectoryInfo> encounters = new List<DirectoryInfo>(baseDirectory.GetDirectories());
-            if(encounters.Any())
+            if (encounters.Any())
             {
-                 encounters.RemoveAll(encounter => !config.encounters.Contains(encounter.Name));
+                encounters.RemoveAll(encounter => !config.encounters.Contains(encounter.Name));
             }
             else
             {
                 throw new InvalidDataException("No encounters listed in config file. ");
             }
-    
-            foreach(var encounter in encounters)
+
+            foreach (var encounter in encounters)
             {
-                logFiles.Add(encounter.Name, getLatestDailyLog(encounter));
+                logFiles.Add(encounter.Name, getLatestLog(encounter));
             }
 
             // No Logs found for the given day
-            if(logFiles.All(encounter => encounter.Value == null))
+            if (logFiles.All(encounter => encounter.Value == null))
             {
                 throw new FileLoadException($"No daily runs found in {config.baseDirectory}.");
             }
 
-            foreach(var log in logFiles)
+            foreach (var log in logFiles)
             {
-                if(log.Value != null)
+                if (log.Value != null)
                 {
                     LOG.Debug($"Collected log for [{log.Key}] that was ran on [{log.Value.CreationTime}]");
                 }
@@ -78,12 +81,13 @@
             return logFiles;
         }
 
+
         /// <summary>
         /// Gathers all files in the given directory, then parses the creation time to obtain the latest run for a given log file.
         /// </summary>
         /// <param name="directory">The base directory of where the ArcDPs logs can be found.</param>
         /// <returns>The log file that was last created. </returns>
-        private FileInfo getLatestDailyLog(DirectoryInfo directory)
+        private FileInfo getLatestLog(DirectoryInfo directory)
         {
             FileInfo latestFile = null;
 
@@ -103,6 +107,33 @@
             }
 
             return latestFile;
+        }
+
+        public Dictionary<string, FileInfo> pollChanges(DirectoryInfo logsDirectory)
+        {
+            if(currentSnapshot == null)
+            {
+                currentSnapshot = logsDirectory;
+                return null;
+            }
+
+            List<DirectoryInfo> currentEncounters = new List<DirectoryInfo>(logsDirectory.GetDirectories());
+            List<DirectoryInfo> storedEncounters = new List<DirectoryInfo>(logsDirectory.GetDirectories());
+
+            foreach(var storedEncounter in storedEncounters)
+            {
+                // Compare each log between stored snapshot and current encoutners
+                // If any current encoutners have newer "last write time" then any stored encounters
+                //      1. get the latest log and place it in the results map
+                //      2. update the snapshot    
+
+            }
+
+            // If results map has no elements in it, return null.
+
+
+
+            return null;
         }
     }
 }
