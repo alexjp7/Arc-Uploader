@@ -19,7 +19,7 @@
         private static readonly string LOG_EXTENSION = "*.evtc";
 
 
-        private DirectoryInfo currentSnapshot;
+        private Dictionary<string,DirectoryInfo> storedSnapshot;
 
         /// <summary>
         /// Config instance containing runntime configurations as found in the config.json
@@ -94,7 +94,7 @@
             List<FileInfo> files = new List<FileInfo>(directory.GetFiles(LOG_EXTENSION));
             if(files.Any())
             {
-                if(config.isDailyRun)
+                if(config.isDailyRun && !config.isPollingEnabled)
                 {
                     files.RemoveAll(log => log.CreationTime.Date != DateTime.Today);
                 }
@@ -109,31 +109,68 @@
             return latestFile;
         }
 
-        public Dictionary<string, FileInfo> pollChanges(DirectoryInfo logsDirectory)
+        /// <summary>
+        /// Compare each log between stored snapshot and current encoutners
+        /// If any current encounters have newer "last write time" then any stored encounters, this method will:
+        /// <list type="number">
+        /// <item> Get the latest log and place it in the results map</item>
+        /// <item> Update the snapshot.</item>
+        /// </list>
+        /// </summary>
+        /// <param name="currentDirectory">The base directory where ArcDPS logs are stored</param>
+        /// <returns></returns>
+        public Dictionary<string, FileInfo> pollChanges(Dictionary<string, DirectoryInfo> currentDirectory)
         {
-            if(currentSnapshot == null)
+            if(storedSnapshot == null)
             {
-                currentSnapshot = logsDirectory;
+                storedSnapshot = currentDirectory;
                 return null;
             }
 
-            List<DirectoryInfo> currentEncounters = new List<DirectoryInfo>(logsDirectory.GetDirectories());
-            List<DirectoryInfo> storedEncounters = new List<DirectoryInfo>(logsDirectory.GetDirectories());
+            Dictionary<string, FileInfo> newLogs = new Dictionary<string, FileInfo>();
 
-            foreach(var storedEncounter in storedEncounters)
+            foreach(var storedEncounter in storedSnapshot)
             {
-                // Compare each log between stored snapshot and current encoutners
-                // If any current encoutners have newer "last write time" then any stored encounters
-                //      1. get the latest log and place it in the results map
-                //      2. update the snapshot    
+                if (currentDirectory[storedEncounter.Key].LastWriteTime > storedEncounter.Value.LastWriteTime)
+                {
+                    LOG.Debug("New log found for: " + storedEncounter.Key);
+                    FileInfo log = getLatestLog(storedEncounter.Value);
 
+                    newLogs.Add(storedEncounter.Key, log);
+                }
             }
 
-            // If results map has no elements in it, return null.
+            // Update snapshot if any new logs are found.
+            if(newLogs.Any())
+            {
+                storedSnapshot = currentDirectory;
+            }
+            else
+            {
+                newLogs = null;
+            }
 
+            return newLogs;
+        }
 
+        /// <summary>
+        /// Utility method to create a dictionary which maps folder names to folder contents. 
+        /// This method provides the ability to perform folder name look ups for convience of folder comparison.
+        /// </summary>
+        /// <param name="path">The path to create a directory map off</param>
+        /// <returns>A mapping between folder names and their contents. </returns>
+        public static Dictionary<string, DirectoryInfo> createDirectoryMap(string path)
+        {
+            DirectoryInfo directory = new DirectoryInfo(path);
+            Dictionary<string, DirectoryInfo> results = new Dictionary<string, DirectoryInfo>();
+            List<DirectoryInfo> directories = new List<DirectoryInfo>(directory.GetDirectories());
 
-            return null;
+            directories.ForEach(encounter =>
+            {
+                results.Add(encounter.Name, encounter);
+            });
+
+            return results;
         }
     }
 }

@@ -7,6 +7,7 @@
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Net;
     using System.Threading;
 
     /// <summary>
@@ -29,6 +30,8 @@
 
         /// <summary>
         /// Defines and executes the runtime components for the collection and uploading of ArcDPS logs.
+        /// The upload and collection of logs can either be performed in bulk based on the currently stored logs,
+        /// or dynamically through file system polling.
         /// </summary>
         public void start()
         {
@@ -38,11 +41,14 @@
             }
             else
             {
-                startStaticUpload();
+                startBulkUpload();
             }
         }
 
-        private void startStaticUpload()
+        /// <summary>
+        /// Performs a bulk uploader with the latest logs stored.
+        /// </summary>
+        private void startBulkUpload()
         {
             try
             {
@@ -67,28 +73,29 @@
             }
         }
 
+        /// <summary>
+        /// Runs polling mode that scans for new uploads through 
+        /// comparing last write time to a stored snapshot of the ArcDPS boss folders.
+        /// </summary>
         private void startPolling()
         {
             LOG.Debug("Starting log polling....");
             LogUploader uploader = new LogUploader();
+            LogCollector logCollector = new LogCollector();
 
             while (true)
             {
-                Dictionary<string, FileInfo> logs = new LogCollector().pollChanges();
-                if(logs != null)
+                Dictionary<string, DirectoryInfo> baseDirectoryMap = LogCollector.createDirectoryMap(config.baseDirectory);
+                Dictionary<string, FileInfo> logs = logCollector.pollChanges(baseDirectoryMap);
+
+                if (logs != null)
                 {
-                    foreach(string log in logs.Keys)
-                    {
-                        LOG.Debug("New log found for " + log);
-                    }
-
                     Dictionary<string, string> results = uploader.upload(logs);
-
                     writeOutput(results);
                     postProcessActions(results);
                 }
                 
-                Thread.Sleep(5000);
+                Thread.Sleep(5000); 
             }
         }
 

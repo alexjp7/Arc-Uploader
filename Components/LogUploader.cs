@@ -8,6 +8,7 @@
     using System.IO;
     using System.Net;
     using System.Text;
+    using System.Threading;
 
     /// <summary>
     /// Component for performing the upload action to the ArcDPS upload server.
@@ -25,21 +26,45 @@
         {
             LOG.Debug("\nUploading Begun...");
             Dictionary<string, string> logUrls = new Dictionary<string, string>();
-            WebClient client = new WebClient();
-
+            List<Thread> uploaders = new List<Thread>();
             foreach(var log in logs)
             {
+                Thread uploaderThread = new Thread(() => uploaderJob(log, logUrls));
+                uploaderThread.Start();
+                uploaders.Add(uploaderThread);
+            }
+
+            foreach(Thread thread in uploaders)
+            {
+                thread.Join();
+            }
+
+            return logUrls;
+        }
+
+        /// <summary>
+        /// Uploading worker that performs the actual file upload
+        /// </summary>
+        /// <param name="log">The log to be uploaded</param>
+        /// <param name="logUrls">The result set that will be added to</param>
+        private void uploaderJob(KeyValuePair<string, FileInfo> log, Dictionary<string, string> logUrls)
+        {
+            try
+            {
+                WebClient client = new WebClient();
                 byte[] responseBinary = client.UploadFile(UploaderConstants.UPLOAD_ENDPOINT, log.Value.FullName);
                 string response = Encoding.UTF8.GetString(responseBinary);
 
                 JSONNode json = JSON.Parse(response);
                 string url = json[UploaderConstants.PERMA_LINK_PROPERTY]?.Value;
-                logUrls.Add(log.Key,url);
+                logUrls.Add(log.Key, url);
 
                 LOG.Debug($"[{log.Key}] - {url}");
             }
-
-            return logUrls;
+            catch (WebException e)
+            {
+                LOG.Error($"Failed to upload log file to ArcDPS upload server.", e.Message);
+            }
         }
     }
 }
