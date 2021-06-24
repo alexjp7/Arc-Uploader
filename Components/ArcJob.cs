@@ -7,6 +7,8 @@
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Net;
+    using System.Threading;
 
     /// <summary>
     /// Defines the overarching process and activties for uploading the most recently created ArcDPS logs.
@@ -28,31 +30,73 @@
 
         /// <summary>
         /// Defines and executes the runtime components for the collection and uploading of ArcDPS logs.
+        /// The upload and collection of logs can either be performed in bulk based on the currently stored logs,
+        /// or dynamically through file system polling.
         /// </summary>
         public void start()
+        {
+            if(config.isPollingEnabled)
+            {
+                startPolling();
+            }
+            else
+            {
+                startBulkUpload();
+            }
+        }
+
+        /// <summary>
+        /// Performs a bulk uploader with the latest logs stored.
+        /// </summary>
+        private void startBulkUpload()
         {
             try
             {
                 Dictionary<string, FileInfo> logs = new LogCollector().collect();
                 LogUploader uploader = new LogUploader();
                 Dictionary<string, string> results = uploader.upload(logs);
-                
+
                 writeOutput(results);
                 postProcessActions(results);
             }
             catch (FileNotFoundException e)
             {
-                LOG.Error($"Configuration file could not be found. Ensure a {UploaderConstants.CONFIG_PATH} file is present.",e);
+                LOG.Error($"Configuration file could not be found. Ensure a {UploaderConstants.CONFIG_PATH} file is present.", e);
             }
-            catch(InvalidDataException e)
+            catch (InvalidDataException e)
             {
-                LOG.Error($"Configuration contains invalid values - {e.Message}",e);
+                LOG.Error($"Configuration contains invalid values - {e.Message}", e);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                LOG.Error(e.Message,e);
+                LOG.Error(e.Message, e);
             }
-              
+        }
+
+        /// <summary>
+        /// Runs polling mode that scans for new uploads through 
+        /// comparing last write time to a stored snapshot of the ArcDPS boss folders.
+        /// </summary>
+        private void startPolling()
+        {
+            LOG.Debug("Starting log polling....");
+            LogUploader uploader = new LogUploader();
+            LogCollector logCollector = new LogCollector();
+
+            while (true)
+            {
+                Dictionary<string, DirectoryInfo> baseDirectoryMap = LogCollector.createDirectoryMap(config.baseDirectory);
+                Dictionary<string, FileInfo> logs = logCollector.pollChanges(baseDirectoryMap);
+
+                if (logs != null)
+                {
+                    Dictionary<string, string> results = uploader.upload(logs);
+                    writeOutput(results);
+                    postProcessActions(results);
+                }
+                
+                Thread.Sleep(5000); 
+            }
         }
 
         /// <summary>
