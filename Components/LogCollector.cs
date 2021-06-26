@@ -41,7 +41,7 @@
         /// <returns> A dictionary containing the encounter name and the actually file (in memory).</returns>
         public Dictionary<string, FileInfo> collect()
         {
-            LOG.Debug("Collection Begun...");
+            LOG.Debug("\nLog collection starting...");
             DirectoryInfo baseDirectory = new DirectoryInfo(config.baseDirectory);
             Dictionary<string, FileInfo> logFiles = new Dictionary<string, FileInfo>();
 
@@ -70,11 +70,17 @@
             {
                 if (log.Value != null)
                 {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
                     LOG.Debug($"Collected log for [{log.Key}] that was ran on [{log.Value.CreationTime}]");
+                    Console.ForegroundColor = ConsoleColor.White;
+
                 }
                 else
                 {
+                    Console.ForegroundColor = ConsoleColor.Red;
                     LOG.Debug($"No daily log available for {log.Key}");
+                    Console.ForegroundColor = ConsoleColor.White;
+
                 }
             }
 

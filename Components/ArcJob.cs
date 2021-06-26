@@ -71,6 +71,10 @@
             {
                 LOG.Error(e.Message, e);
             }
+            finally
+            {
+                LOG.Debug("\nArcAgent finnished!");
+            }
         }
 
         /// <summary>
@@ -79,7 +83,7 @@
         /// </summary>
         private void startPolling()
         {
-            LOG.Debug("Starting log polling....");
+            LOG.Debug("\nStarting log polling....");
             LogUploader uploader = new LogUploader();
             LogCollector logCollector = new LogCollector();
 
@@ -110,7 +114,7 @@
 
             Directory.CreateDirectory(config.outputDirectory);
 
-            StreamWriter file = new StreamWriter(filePath,true);
+            StreamWriter file = new StreamWriter(filePath, true);
             file.WriteLine(DateTime.Now.TimeOfDay.ToString());
 
             foreach (string line in results.Select(result => $"{result.Key} - {result.Value}"))
@@ -121,6 +125,10 @@
             file.Close();
         }
 
+        /// <summary>
+        /// Performs any actions after uploading/collection is completed. 
+        /// </summary>
+        /// <param name="results">The list of results that were uploaded.</param>
         private void postProcessActions(Dictionary<string, string> results)
         {
             if(!config.isAutoBrowserOpenEnabled)
@@ -128,7 +136,7 @@
                 return;
             }
 
-            LOG.Debug($"Opening browser from path {config.browserAppPath}");
+            LOG.Debug($"\nOpening browser from path {config.browserAppPath}");
             foreach(var result in results)
             {
                 Process.Start(config.browserAppPath, result.Value);
