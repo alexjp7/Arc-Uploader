@@ -59,11 +59,13 @@
                 string url = json[UploaderConstants.PERMA_LINK_PROPERTY]?.Value;
                 logUrls.Add(log.Key, url);
 
+                Console.ForegroundColor = ConsoleColor.Cyan;
                 LOG.Debug($"[{log.Key}] - {url}");
+                Console.ForegroundColor = ConsoleColor.White;
             }
             catch (WebException e)
             {
-                LOG.Error($"Failed to upload log file to ArcDPS upload server.", e.Message);
+                LOG.Error($"Failed to upload log file to ArcDPS upload server.", e);
             }
         }
     }
