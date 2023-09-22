@@ -16,7 +16,7 @@
         /// <summary>
         /// File extension for ArcDPS log files
         /// </summary>
-        private static readonly string LOG_EXTENSION = "*.evtc";
+        private static readonly string LOG_EXTENSION = "*.zevtc";
 
 
         private Dictionary<string,DirectoryInfo> storedSnapshot;
